@@ -6,7 +6,38 @@
         <td class="text-end">{{ review.date_added }}</td>
       </tr>
       <tr>
-        <td colspan="2"><p>{{ review.text }}</p>
+        <td colspan="2">
+          <p>{{ review.text }}</p>
+          
+          <!-- HIỂN THỊ ẢNH VÀ VIDEO -->
+          {% if review.media %}
+            <div class="review-media mt-3 mb-3">
+              <div class="row g-2">
+                {% for media in review.media %}
+                  <div class="col-6 col-md-3">
+                    {% if media.type == 'image' %}
+                      <a href="{{ base }}image/{{ media.file_path }}" data-lightbox="review-{{ review.review_id }}" data-title="{{ review.author }}">
+                        <img src="{{ base }}image/{{ media.file_path }}" 
+                             class="img-thumbnail rounded" 
+                             style="height: 120px; width: 100%; object-fit: cover; cursor: pointer;" 
+                             alt="Review image"
+                             loading="lazy">
+                      </a>
+                    {% elseif media.type == 'video' %}
+                      <video src="{{ base }}image/{{ media.file_path }}" 
+                             class="img-thumbnail rounded" 
+                             style="height: 120px; width: 100%; object-fit: cover;" 
+                             controls
+                             preload="metadata">
+                        Trình duyệt của bạn không hỗ trợ video.
+                      </video>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+          
           <div class="rating">
             {% for i in 1..5 %}
               {% if review.rating < i %}
@@ -15,7 +46,8 @@
                 <span class="fa-stack"><i class="fa-solid fa-star fa-stack-1x"></i><i class="fa-regular fa-star fa-stack-1x"></i></span>
               {% endif %}
             {% endfor %}
-          </div></td>
+          </div>
+        </td>
       </tr>
     </table>
   {% endfor %}
@@ -23,3 +55,19 @@
 {% else %}
   <p class="text-center">{{ text_no_results }}</p>
 {% endif %}
+
+<!-- Lightbox CSS/JS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/css/lightbox.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.11.4/js/lightbox.min.js"></script>
+
+<style>
+.review-media .img-thumbnail {
+    border: 2px solid #dee2e6;
+    transition: all 0.3s ease;
+}
+.review-media .img-thumbnail:hover {
+    border-color: #0d6efd;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+</style>

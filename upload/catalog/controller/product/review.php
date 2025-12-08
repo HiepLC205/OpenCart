@@ -99,7 +99,8 @@ class Review extends \Opencart\System\Engine\Controller {
 			$data['reviews'][] = [
 				'text'       => nl2br($result['text']),
 				'rating'     => (int)$result['rating'],
-				'date_added' => date($this->language->get('date_format_short'), strtotime($result['date_added']))
+				'date_added' => date($this->language->get('date_format_short'), strtotime($result['date_added'])),
+				'media'      => $result['media'] ?? []
 			] + $result;
 		}
 
@@ -162,7 +163,7 @@ class Review extends \Opencart\System\Engine\Controller {
 			$json['error']['author'] = $this->language->get('error_author');
 		}
 
-		if (!oc_validate_length($post_info['text'], 25, 1000)) {
+		if (!oc_validate_length($post_info['text'], 3, 1000)) {
 			$json['error']['text'] = $this->language->get('error_text');
 		}
 
@@ -196,10 +197,81 @@ class Review extends \Opencart\System\Engine\Controller {
 			}
 		}
 
+		// XỬ LÝ UPLOAD MEDIA
+		$images = [];
+		$videos = [];
+
+		if (isset($_FILES['media']) && !empty($_FILES['media']['name'][0])) {
+			$files = $_FILES['media'];
+			$file_count = count($files['name']);
+
+			// Giới hạn số file
+			if ($file_count > 10) {
+				$json['error']['media'] = 'Chỉ được upload tối đa 10 file!';
+			} else {
+				$upload_dir = DIR_IMAGE . 'catalog/reviews/';
+
+				// Tạo thư mục nếu chưa có
+				if (!is_dir($upload_dir)) {
+					mkdir($upload_dir, 0755, true);
+				}
+
+				for ($i = 0; $i < $file_count; $i++) {
+					if ($files['error'][$i] === UPLOAD_ERR_OK) {
+						$filename = $files['name'][$i];
+						$tmp_name = $files['tmp_name'][$i];
+						$filesize = $files['size'][$i];
+
+						$ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+						$allowed_images = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+						$allowed_videos = ['mp4', 'webm', 'mov', 'avi'];
+
+						// Kiểm tra extension
+						if (in_array($ext, $allowed_images)) {
+							// Kiểm tra kích thước ảnh (5MB)
+							if ($filesize <= 5 * 1024 * 1024) {
+								$new_filename = 'review_' . uniqid() . '_' . time() . '.' . $ext;
+								$upload_path = $upload_dir . $new_filename;
+
+								if (move_uploaded_file($tmp_name, $upload_path)) {
+									$images[] = 'catalog/reviews/' . $new_filename;
+								}
+							} else {
+								$json['error']['media'] = 'Ảnh quá lớn! Tối đa 5MB mỗi file.';
+								break;
+							}
+						} elseif (in_array($ext, $allowed_videos)) {
+							// Kiểm tra kích thước video (50MB)
+							if ($filesize <= 50 * 1024 * 1024) {
+								$new_filename = 'review_' . uniqid() . '_' . time() . '.' . $ext;
+								$upload_path = $upload_dir . $new_filename;
+
+								if (move_uploaded_file($tmp_name, $upload_path)) {
+									$videos[] = 'catalog/reviews/' . $new_filename;
+								}
+							} else {
+								$json['error']['media'] = 'Video quá lớn! Tối đa 50MB mỗi file.';
+								break;
+							}
+						} else {
+							$json['error']['media'] = 'Chỉ chấp nhận file ảnh (jpg, png, gif, webp) hoặc video (mp4, webm, mov)!';
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		// CHỈ LƯU REVIEW NẾU KHÔNG CÓ LỖI
 		if (!$json) {
 			$this->load->model('catalog/review');
 
-			$this->model_catalog_review->addReview($product_id, $this->request->post);
+			// Thêm images và videos vào data
+			$review_data = $this->request->post;
+			$review_data['images'] = $images;
+			$review_data['videos'] = $videos;
+
+			$this->model_catalog_review->addReview($product_id, $review_data);
 
 			$json['success'] = $this->language->get('text_success');
 		}
