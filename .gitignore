@@ -44,3 +44,7 @@
 /.DS_Store
 /.cache
 /.php-cs-fixer.cache
+
+# --- FILE NÉN & CÀI ĐẶT (Cần thêm cái này để chặn file zip) ---
+*.zip
+*.ocmod.zip
