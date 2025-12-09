@@ -1,0 +1,139 @@
+<div class="quickview-content">
+	<h2>{{ name }}</h2>
+
+	<div class="row">
+		<div class="col-6">
+			<img src="{{ image }}" class="img-fluid" />
+		</div>
+
+		<div class="col-6">
+			{% if special %}
+				<p><span class="text-danger">{{ special }}</span> <del>{{ price }}</del></p>
+			{% else %}
+				<p>{{ price }}</p>
+			{% endif %}
+
+			<div class="description">
+				{{ description|slice(0, 200) }}...
+			</div>
+
+			<form id="quickviewForm" method="post" data-oc-toggle="ajax" data-oc-load="{{ cart }}" data-oc-target="#cart" action="{{ cart_add }}">
+				{% if options %}
+					{% for option in options %}
+						{# Mirror the product page input types so text inputs and textarea are usable in quickview #}
+						{% if option.type == 'select' %}
+							<div class="mt-3{% if option.required %} required{% endif %}">
+								<label for="input-option-{{ option.product_option_id }}" class="form-label"><strong>{{ option.name }}{% if option.required %} <span class="text-danger">*</span>{% endif %}</strong></label>
+								<select name="option[{{ option.product_option_id }}]" id="input-option-{{ option.product_option_id }}" class="form-select" {% if option.required %}required{% endif %}>
+									<option value=""> — Select — </option>
+									{% for option_value in option.product_option_value %}
+										<option value="{{ option_value.product_option_value_id }}">{{ option_value.name }}{% if option_value.price %} ({{ option_value.price_prefix }}{{ option_value.price }}){% endif %}</option>
+									{% endfor %}
+								</select>
+								<div id="error-option-{{ option.product_option_id }}" class="invalid-feedback"></div>
+							</div>
+						{% endif %}
+
+						{% if option.type == 'radio' %}
+							<div class="mt-3{% if option.required %} required{% endif %}">
+								<label class="form-label"><strong>{{ option.name }}</strong></label>
+								<div id="input-option-{{ option.product_option_id }}">
+									{% for option_value in option.product_option_value %}
+										<div class="form-check">
+											<input type="radio" name="option[{{ option.product_option_id }}]" value="{{ option_value.product_option_value_id }}" id="input-option-value-{{ option_value.product_option_value_id }}" class="form-check-input" />
+											<label for="input-option-value-{{ option_value.product_option_value_id }}" class="form-check-label">
+												{% if option_value.image %}<img src="{{ option_value.image }}" alt="{{ option_value.name }}" class="img-thumbnail"/>{% endif %} {{ option_value.name }} {% if option_value.price %} ({{ option_value.price_prefix }}{{ option_value.price }}){% endif %}
+											</label>
+										</div>
+									{% endfor %}
+								</div>
+								<div id="error-option-{{ option.product_option_id }}" class="invalid-feedback"></div>
+							</div>
+						{% endif %}
+
+						{% if option.type == 'checkbox' %}
+							<div class="mt-3{% if option.required %} required{% endif %}">
+								<label class="form-label"><strong>{{ option.name }}</strong></label>
+								<div id="input-option-{{ option.product_option_id }}">
+									{% for option_value in option.product_option_value %}
+										<div class="form-check">
+											<input type="checkbox" name="option[{{ option.product_option_id }}][]" value="{{ option_value.product_option_value_id }}" id="input-option-value-{{ option_value.product_option_value_id }}" class="form-check-input" />
+											<label for="input-option-value-{{ option_value.product_option_value_id }}" class="form-check-label">{% if option_value.image %}<img src="{{ option_value.image }}" alt="{{ option_value.name }}" class="img-thumbnail"/>{% endif %} {{ option_value.name }} {% if option_value.price %} ({{ option_value.price_prefix }}{{ option_value.price }}){% endif %}</label>
+										</div>
+									{% endfor %}
+								</div>
+								<div id="error-option-{{ option.product_option_id }}" class="invalid-feedback"></div>
+							</div>
+						{% endif %}
+
+						{% if option.type == 'text' %}
+							<div class="mt-3{% if option.required %} required{% endif %}">
+								<label for="input-option-{{ option.product_option_id }}" class="form-label"><strong>{{ option.name }}{% if option.required %} <span class="text-danger">*</span>{% endif %}</strong></label>
+								<input type="text" name="option[{{ option.product_option_id }}]" value="{{ option.value|default('') }}" placeholder="{{ option.name }}" id="input-option-{{ option.product_option_id }}" class="form-control" />
+								<div id="error-option-{{ option.product_option_id }}" class="invalid-feedback"></div>
+							</div>
+						{% endif %}
+
+						{% if option.type == 'textarea' %}
+							<div class="mt-3{% if option.required %} required{% endif %}">
+								<label for="input-option-{{ option.product_option_id }}" class="form-label"><strong>{{ option.name }}{% if option.required %} <span class="text-danger">*</span>{% endif %}</strong></label>
+								<textarea name="option[{{ option.product_option_id }}]" rows="5" placeholder="{{ option.name }}" id="input-option-{{ option.product_option_id }}" class="form-control">{{ option.value|default('') }}</textarea>
+								<div id="error-option-{{ option.product_option_id }}" class="invalid-feedback"></div>
+							</div>
+						{% endif %}
+
+						{% if option.type == 'file' %}
+							<div class="mt-3{% if option.required %} required{% endif %}">
+								<label for="button-upload-{{ option.product_option_id }}" class="form-label"><strong>{{ option.name }}{% if option.required %} <span class="text-danger">*</span>{% endif %}</strong></label>
+								<div>
+									<button type="button" id="button-upload-{{ option.product_option_id }}" data-oc-toggle="upload" data-oc-url="{{ upload|default('') }}" data-oc-target="#input-option-{{ option.product_option_id }}" data-oc-size-max="{{ config_file_max_size|default(0) }}" data-oc-size-error="{{ error_upload_size|default('') }}" class="btn btn-light btn-block"><i class="fa-solid fa-upload"></i> {{ button_upload|default('Upload') }}</button>
+									<input type="hidden" name="option[{{ option.product_option_id }}]" value="" id="input-option-{{ option.product_option_id }}" />
+								</div>
+								<div id="error-option-{{ option.product_option_id }}" class="invalid-feedback"></div>
+							</div>
+						{% endif %}
+
+						{% if option.type == 'date' %}
+							<div class="mt-3{% if option.required %} required{% endif %}">
+								<label for="input-option-{{ option.product_option_id }}" class="form-label"><strong>{{ option.name }}{% if option.required %} <span class="text-danger">*</span>{% endif %}</strong></label>
+								<input type="date" name="option[{{ option.product_option_id }}]" value="{{ option.value|default('') }}" id="input-option-{{ option.product_option_id }}" class="form-control" />
+								<div id="error-option-{{ option.product_option_id }}" class="invalid-feedback"></div>
+							</div>
+						{% endif %}
+
+						{% if option.type == 'time' %}
+							<div class="mt-3{% if option.required %} required{% endif %}">
+								<label for="input-option-{{ option.product_option_id }}" class="form-label"><strong>{{ option.name }}{% if option.required %} <span class="text-danger">*</span>{% endif %}</strong></label>
+								<input type="time" name="option[{{ option.product_option_id }}]" value="{{ option.value|default('') }}" id="input-option-{{ option.product_option_id }}" class="form-control" />
+								<div id="error-option-{{ option.product_option_id }}" class="invalid-feedback"></div>
+							</div>
+						{% endif %}
+
+						{% if option.type == 'datetime' %}
+							<div class="mt-3{% if option.required %} required{% endif %}">
+								<label for="input-option-{{ option.product_option_id }}" class="form-label"><strong>{{ option.name }}{% if option.required %} <span class="text-danger">*</span>{% endif %}</strong></label>
+								<input type="datetime-local" name="option[{{ option.product_option_id }}]" value="{{ option.value|default('') }}" id="input-option-{{ option.product_option_id }}" class="form-control" />
+								<div id="error-option-{{ option.product_option_id }}" class="invalid-feedback"></div>
+							</div>
+						{% endif %}
+					{% endfor %}
+				{% endif %}
+
+				<div class="mt-3 d-flex align-items-center gap-2">
+					<label class="me-2">Quantity</label>
+					<input type="number" name="quantity" value="{{ minimum|default(1) }}" min="{{ minimum|default(1) }}" class="form-control form-control-sm" style="width:100px;" />
+				</div>
+
+				<input type="hidden" name="product_id" value="{{ product_id }}" />
+
+				<div class="mt-3">
+					{# Use global addToCart helper so quickview adds to header cart reliably when content is loaded dynamically #}
+					<button type="button" class="btn btn-primary" onclick="addToCart({{ product_id }})">{{ button_cart|default('Add to Cart') }}</button>
+					<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ button_cancel|default('Close') }}</button>
+				</div>
+
+				<div class="quickview-messages mt-3" aria-live="polite"></div>
+			</form>
+		</div>
+	</div>
+</div>

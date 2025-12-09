@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html dir="{{ direction }}" lang="{{ lang }}">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>{{ title }}</title>
+  <base href="{{ base }}"/>
+  {% if description %}
+    <meta name="description" content="{{ description }}"/>
+  {% endif %}
+  {% if keywords %}
+    <meta name="keywords" content="{{ keywords }}"/>
+  {% endif %}
+  <script src="{{ jquery }}" type="text/javascript"></script>
+  <link href="{{ bootstrap }}" type="text/css" rel="stylesheet" media="screen"/>
+  <link href="{{ icons }}" rel="stylesheet" type="text/css"/>
+  <link href="{{ stylesheet }}" type="text/css" rel="stylesheet"/>
+  <script src="catalog/view/javascript/common.js" type="text/javascript"></script>
+  {% if icon %}
+    <link rel="icon" href="{{ icon }}" type="image/png">
+  {% endif %}
+  {% for style in styles %}
+    <link href="{{ style.href }}" type="text/css" rel="{{ style.rel }}" media="{{ style.media }}"/>
+  {% endfor %}
+  {% for script in scripts %}
+    <script src="{{ script.href }}" type="text/javascript"></script>
+  {% endfor %}
+  {% for link in links %}
+    <link href="{{ link.href }}" rel="{{ link.rel }}"/>
+  {% endfor %}
+  {% for analytic in analytics %}
+    {{ analytic }}
+  {% endfor %}
+</head>
+<body>
+
+<div class="modal fade" id="quickviewModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-body" id="quickviewContent">
+        Loading...
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Global toast container for small persistent add-to-cart notifications -->
+<div id="globalToastContainer" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:10880; pointer-events: none;">
+  <!-- toasts injected here -->
+</div>
+
+<!-- Quickview toast configuration (set from server-side config) -->
+<script>
+  window._quickview_toast_config = {
+    autohide: {{ config_quickview_toast_autohide ? 'true' : 'false' }},
+    timeout: {{ config_quickview_toast_timeout|default(5000) }}
+  };
+</script>
+
+<!-- Load the standalone toast helper (queueing + autohide support). Keep it before the inline quickview script so showAddToCartToast is available. -->
+<script src="catalog/view/javascript/quickview-toast.js" type="text/javascript"></script>
+
+
+<div id="container">
+  <div id="alert"></div>
+  <nav id="top">
+    <div class="container">
+      <div class="row">
+        <div class="col-4">
+          <ul class="list-inline">
+            <li class="list-inline-item me-3">{{ currency }}</li>
+            <li class="list-inline-item">{{ language }}</li>
+          </ul>
+        </div>
+        <div class="col text-end">
+          <ul class="list-inline">
+            <li class="list-inline-item"><a href="{{ contact }}"><i class="fa-solid fa-phone"></i> <span class="d-none d-lg-inline">{{ telephone }}</span></a></li>
+            <li class="list-inline-item">
+              <div class="dropdown">
+                <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown"><i class="fa-solid fa-user"></i> <span class="d-none d-lg-inline">{{ text_account }}</span> <i class="fa-solid fa-caret-down"></i></a>
+                <ul class="dropdown-menu dropdown-menu-right">
+                  {% if not logged %}
+                    <li><a href="{{ register }}" class="dropdown-item">{{ text_register }}</a></li>
+                    <li><a href="{{ login }}" class="dropdown-item">{{ text_login }}</a></li>
+                  {% else %}
+                    <li><a href="{{ account }}" class="dropdown-item">{{ text_account }}</a></li>
+                    <li><a href="{{ order }}" class="dropdown-item">{{ text_order }}</a></li>
+                    <li><a href="{{ transaction }}" class="dropdown-item">{{ text_transaction }}</a></li>
+                    <li><a href="{{ download }}" class="dropdown-item">{{ text_download }}</a></li>
+                    <li><a href="{{ logout }}" class="dropdown-item">{{ text_logout }}</a></li>
+                  {% endif %}
+                </ul>
+              </div>
+            </li>
+            <li class="list-inline-item"><a href="{{ wishlist }}" id="wishlist-total" title="{{ text_wishlist }}"><i class="fa-solid fa-heart"></i> <span class="d-none d-lg-inline">{{ text_wishlist }}</span></a></li>
+            <li class="list-inline-item"><a href="{{ shopping_cart }}" title="{{ text_shopping_cart }}"><i class="fa-solid fa-cart-shopping"></i> <span class="d-none d-lg-inline">{{ text_shopping_cart }}</span></a></li>
+            <li class="list-inline-item"><a href="{{ checkout }}" title="{{ text_checkout }}"><i class="fa-solid fa-share"></i> <span class="d-none d-lg-inline">{{ text_checkout }}</span></a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <header>
+    <div class="container">
+      <div class="row">
+        <div class="col-md-3 col-lg-4">
+          <div id="logo">
+            {% if logo %}
+              <a href="{{ home }}"><img src="{{ logo }}" title="{{ name }}" alt="{{ name }}" class="img-fluid"/></a>
+            {% else %}
+              <h1><a href="{{ home }}">{{ name }}</a></h1>
+            {% endif %}
+          </div>
+        </div>
+        <div class="col-md-5">{{ search }}</div>
+        <div id="cart" class="col-md-4 col-lg-3 mb-2">{{ cart }}</div>
+      </div>
+    </div>
+  </header>
+  <main>
+    {{ menu }}
+
+
+<script>
+function quickview(id) {
+  // store current scroll offset so we can restore after modal hides
+  try { window._quickview_scrollY = window.pageYOffset || document.documentElement.scrollTop || 0; } catch (e) { window._quickview_scrollY = 0; }
+
+  fetch('index.php?route=product/quickview&product_id=' + id)
+    .then(res => res.text())
+    .then(html => {
+        document.getElementById('quickviewContent').innerHTML = html;
+        var modal = new bootstrap.Modal(document.getElementById('quickviewModal'));
+        modal.show();
+    });
+}
+
+// When the quickview modal is hidden via any means, run the cleanup
+document.addEventListener('DOMContentLoaded', function() {
+  var el = document.getElementById('quickviewModal');
+  if (el) {
+    el.addEventListener('hidden.bs.modal', function () {
+      _cleanupModalBackdrop();
+    });
+  }
+});
+
+// Helper to clean up any leftover modal backdrops and body classes
+function _cleanupModalBackdrop() {
+  // Delay a bit to allow Bootstrap hide animations to finish
+  setTimeout(function () {
+    try {
+      // Only remove backdrops if no modal is currently shown — avoids interfering with other modals
+      if (!document.querySelector('.modal.show')) {
+        document.querySelectorAll('.modal-backdrop').forEach(function (el) {
+          if (el && el.parentNode) el.parentNode.removeChild(el);
+        });
+
+        // Remove modal-open class and restore body padding + overflow/position that may have been added
+        document.body.classList.remove('modal-open');
+        document.body.style.paddingRight = '';
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+
+        // Restore the saved scroll position (if any) and make sure scrolling is possible
+        try {
+          var y = window._quickview_scrollY || 0;
+          window.scrollTo(0, y);
+          // clear stored position
+          window._quickview_scrollY = 0;
+        } catch (e) {}
+      }
+    } catch (e) {
+      // Best-effort cleanup; ignore failures
+    }
+  }, 250);
+}
+
+// Use the external quickview-toast.js helper (loaded above) to implement
+// queued, configurable toast notifications. The global function
+// showAddToCartToast(...) is provided by that file.
+
+// Support delegated quickview buttons with data-product-id (keeps inline onclick working)
+document.addEventListener('click', function (e) {
+  if (!e.target) return;
+
+  var btn = e.target.closest ? e.target.closest('.btn-quickview') : null;
+  if (!btn) return;
+
+  e.preventDefault();
+
+  var id = btn.getAttribute('data-product-id');
+  if (id) {
+    quickview(id);
+  }
+});
+
+/* Global helper for Quick View "Add to Cart" buttons. Collects options and quantity
+  from the quickview modal content (if present) and submits to checkout/cart.add.
+   Declared on window so inline onclick="addToCart(...)" works.
+*/
+window.addToCart = function(product_id) {
+  var container = document.querySelector('#quickviewContent') || document.querySelector('.quickview-content');
+
+  var formData = new FormData();
+  formData.append('product_id', product_id);
+
+  // Default qty
+  var qty = 1;
+  if (container) {
+    var qtyInput = container.querySelector('[name="quantity"]') || container.querySelector('input[type="number"]');
+    if (qtyInput && qtyInput.value) qty = qtyInput.value;
+
+    // Collect option fields (names like option[<id>] or option[<id>][])
+    container.querySelectorAll('[name^="option["]').forEach(function (el) {
+      var name = el.getAttribute('name');
+
+      if (el.type === 'checkbox') {
+        if (el.checked) formData.append(name, el.value);
+      } else if (el.type === 'radio') {
+        if (el.checked) formData.append(name, el.value);
+      } else if (el.tagName.toLowerCase() === 'select') {
+        formData.append(name, el.value);
+      } else {
+        formData.append(name, el.value || '');
+      }
+    });
+  }
+
+  formData.append('quantity', qty);
+
+  var addBtn = container ? container.querySelector('button[onclick^="addToCart"]') : null;
+  if (addBtn) addBtn.disabled = true;
+
+  fetch('index.php?route=checkout/cart.add', {
+    method: 'POST',
+    body: formData
+  }).then(function(res){
+    if (res.status === 404) {
+      // Helpful message for diagnostics — route not found on server
+      console.error('checkout/cart.add returned 404 — verify catalog/controller/checkout/cart.php and routing.');
+      var el = container ? container.querySelector('.quickview-messages') : null;
+      if (!el && container) {
+        el = document.createElement('div'); el.className = 'quickview-messages mt-2'; container.appendChild(el);
+      }
+      if (el) el.innerHTML = '<div class="alert alert-danger">Add-to-cart endpoint returned 404 (Not Found). Please check your OpenCart checkout/cart controller or server routing.</div>';
+      throw new Error('checkout/cart.add returned 404');
+    }
+
+    return res.json();
+  }).then(function (json) {
+    var messagesEl = container ? container.querySelector('.quickview-messages') : null;
+    if (!messagesEl && container) {
+      messagesEl = document.createElement('div');
+      messagesEl.className = 'quickview-messages mt-2';
+      container.appendChild(messagesEl);
+    }
+
+    // If the server requests a redirect (e.g. product requires options, special flow)
+    // show a helpful inline action and do not navigate away from the current page.
+    if (json.redirect) {
+      if (messagesEl) messagesEl.innerHTML = '<div class="alert alert-warning">Additional steps are required — <a href="' + json.redirect + '">open details</a></div>';
+
+      // Do not continue to treat this as a success; let the shopper handle the next steps
+      return;
+    }
+
+    if (json.success) {
+      // Prefer showing a lightweight persistent toast notification instead of an inline alert.
+      try {
+        var productTitle = '';
+        var productImage = '';
+
+        if (container) {
+          try { productTitle = (container.querySelector('h2') || container.querySelector('.product-title') || container.querySelector('[data-product-name]'))?.textContent.trim() || ''; } catch (e) { productTitle = ''; }
+          try { var imgEl = container.querySelector('img'); productImage = imgEl ? imgEl.getAttribute('src') : ''; } catch (e) { productImage = ''; }
+        }
+
+        // Show the persistent toast. Keep the modal open.
+        showAddToCartToast(productTitle, productImage, json.success, 'index.php?route=checkout/cart');
+
+        // Keep a simple, non-visual confirmation inside the quickview for screen readers.
+        if (messagesEl) {
+          messagesEl.innerHTML = '<div class="visually-hidden" aria-live="polite">' + (json.success || '') + '</div>';
+        }
+      } catch (e) {
+        // fall back gracefully — if the toast fails, show a simple inline message
+        if (messagesEl) messagesEl.innerHTML = '<div class="alert alert-success">' + (json.success || '') + '</div>';
+      }
+
+      // Update header cart fragment (use cart controller to fetch fragment)
+      try {
+        fetch('index.php?route=common/cart')
+          .then(function(r){ return r.text(); })
+          .then(function(html){
+            var tmp = document.createElement('div'); tmp.innerHTML = html;
+            var newCart = tmp.querySelector('#cart');
+            var currentCart = document.querySelector('#cart');
+            if (newCart && currentCart) currentCart.innerHTML = newCart.innerHTML;
+          });
+      } catch (err) {
+        // Not critical - header update failed
+      }
+
+      // Don't auto-close the quickview modal — leave it to the shopper.
+      // We intentionally avoid calling instance.hide() or _cleanupModalBackdrop() here so
+      // the user can read the success message and explicitly decide whether to close.
+    } else if (json.error) {
+      if (messagesEl) {
+        if (typeof json.error === 'object') {
+          messagesEl.innerHTML = Object.keys(json.error).map(function(k){ return '<div class="alert alert-danger">' + json.error[k] + '</div>'; }).join('');
+        } else {
+          messagesEl.innerHTML = '<div class="alert alert-danger">' + json.error + '</div>';
+        }
+      }
+    }
+  }).catch(function () {
+    if (container) {
+      var el = container.querySelector('.quickview-messages');
+      if (el) el.innerHTML = '<div class="alert alert-danger">An error occurred</div>';
+    }
+  }).finally(function () { if (addBtn) addBtn.disabled = false; });
+};
+</script>
