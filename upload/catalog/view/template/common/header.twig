@@ -65,7 +65,15 @@
                 </ul>
               </div>
             </li>
-            <li class="list-inline-item"><a href="{{ wishlist }}" id="wishlist-total" title="{{ text_wishlist }}"><i class="fa-solid fa-heart"></i> <span class="d-none d-lg-inline">{{ text_wishlist }}</span></a></li>
+            <div class="dropdown d-inline-block" style="vertical-align: middle;">
+                <a href="{{ wishlist }}" class="dropdown-toggle" style="color: black;"  role="button" data-bs-toggle="dropdown" aria-expanded="false" id="wishlist-total-btn" data-bs-offset="0,15">
+                 <i class="fa-solid fa-heart"></i> <span class="d-none d-md-inline" id="wishlist-total">{{ text_wishlist }}</span>
+                </a>
+  
+                <div class="dropdown-menu dropdown-menu-end p-0 shadow border-0" id="wishlist-dropdown-content" style="min-width: 320px; overflow: hidden; border-radius: 8px;">
+               <div class="text-center p-3"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>
+               </div>
+              </div>
             <li class="list-inline-item"><a href="{{ shopping_cart }}" title="{{ text_shopping_cart }}"><i class="fa-solid fa-cart-shopping"></i> <span class="d-none d-lg-inline">{{ text_shopping_cart }}</span></a></li>
             <li class="list-inline-item"><a href="{{ checkout }}" title="{{ text_checkout }}"><i class="fa-solid fa-share"></i> <span class="d-none d-lg-inline">{{ text_checkout }}</span></a></li>
           </ul>

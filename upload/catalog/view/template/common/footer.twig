@@ -60,4 +60,107 @@ Please donate via PayPal to donate@opencart.com
 {% for script in scripts %}
   <script src="{{ script.href }}" type="text/javascript"></script>
 {% endfor %}
+<script>
+$(document).ready(function() {
+    function updateHeaderHeart() {
+        var totalText = $('#wishlist-total').text(); 
+        var match = totalText.match(/(\d+)/); 
+        var count = 0;
+        if (match) {
+            count = parseInt(match[0]);
+        }
+        var headerIcon = $('#wishlist-total-btn i'); 
+        
+        if (count > 0) {
+            headerIcon.css('color', 'red');
+            headerIcon.removeClass('fa-regular').addClass('fa-solid'); 
+        } else {
+            headerIcon.css('color', ''); 
+            headerIcon.removeClass('fa-solid').addClass('fa-regular');
+        }
+    }
+    updateHeaderHeart();
+    var wishlistDropdown = document.getElementById('wishlist-total-btn');
+    if (wishlistDropdown) {
+        wishlistDropdown.addEventListener('show.bs.dropdown', function () {
+            $('#wishlist-dropdown-content').html('<li><div class="text-center p-3"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div></li>');
+            $.ajax({
+                url: 'index.php?route=account/wishlist|dropdown&language={{ language }}',
+                dataType: 'html',
+                success: function(html) {
+                    $('#wishlist-dropdown-content').html(html);
+                },
+                error: function(xhr, ajaxOptions, thrownError) {
+                    console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+                    $('#wishlist-dropdown-content').html('<li><div class="text-center p-2 text-danger">Lỗi tải dữ liệu</div></li>');
+                }
+            });
+        });
+    }
+
+    window.wishlist = {
+        'add': function(product_id) {
+            $.ajax({
+                url: 'index.php?route=account/wishlist|add&language={{ language }}',
+                type: 'post',
+                data: 'product_id=' + product_id,
+                dataType: 'json',
+                success: function(json) {
+                    $('.alert-dismissible').remove();
+
+                    if (json['redirect']) {
+                        location = json['redirect'];
+                    }
+
+                    if (json['success']) {
+                        // $('#alert').prepend('<div class="alert alert-success alert-dismissible"><i class="fa-solid fa-circle-check"></i> ' + json['success'] + ' <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>');
+                    }
+
+                    if (json['total']) {
+                        $('#wishlist-total').html(json['total']);
+                        updateHeaderHeart();
+                    }
+
+                    var btn = $('button[onclick*="' + product_id + '"]');
+                    var btnID = $('#wishlist-btn-' + product_id); 
+
+                    var allBtns = btn.add(btnID);
+
+                    if (json['action'] == 'add') {
+                        allBtns.addClass('wishlist-active');
+                        allBtns.find('i').css('color', 'red').removeClass('fa-regular').addClass('fa-solid');
+                    } else if (json['action'] == 'remove') {
+                        
+                        allBtns.removeClass('wishlist-active');
+                        allBtns.find('i').css('color', '').removeClass('fa-solid').addClass('fa-regular');
+                    }
+                },
+                error: function(xhr, ajaxOptions, thrownError) {
+                    console.log(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+                }
+            });
+        },
+        'remove': function() { }
+    }
+
+  
+    $.ajax({
+        url: 'index.php?route=account/wishlist|getkeys&language={{ language }}',
+        type: 'get',
+        dataType: 'json',
+        success: function(json_ids) {
+            if (json_ids && json_ids.length > 0) {
+                json_ids.forEach(function(id) {
+                    var btn = $('button[onclick*="' + id + '"]');
+                    if (btn.length > 0) {
+                        btn.addClass('wishlist-active');
+                        btn.find('i').css('color', 'red').removeClass('fa-regular').addClass('fa-solid');
+                    }
+                });
+            }
+            updateHeaderHeart();
+        }
+    });
+});
+</script>
 </body></html>

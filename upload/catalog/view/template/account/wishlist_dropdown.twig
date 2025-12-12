@@ -1,0 +1,32 @@
+
+  {% if products %}
+    <div style="max-height: 300px; overflow-y: auto;">
+      {% for product in products %}
+      <div class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-2" id="wishlist-item-{{ product.product_id }}">
+        <a href="{{ product.href }}" class="d-flex align-items-center gap-3 text-decoration-none text-dark flex-grow-1">
+            <img src="{{ product.thumb }}" alt="{{ product.name }}" class="img-thumbnail" style="width: 47px; height: 47px; object-fit: cover;">
+            <div>
+            <h6 class="mb-0" style="font-size: 14px; line-height: 1.2;">{{ product.name }}</h6>
+            <small class="text-muted">
+                {% if product.special %}
+                <span style="text-decoration: line-through; margin-right: 5px;">{{ product.price }}</span>
+                <span class="text-danger fw-bold">{{ product.special }}</span>
+                {% else %}
+                <span class="fw-bold">{{ product.price }}</span>
+                {% endif %}
+            </small>
+            </div>
+        </a>
+        
+        <button type="button" onclick="wishlist.add('{{ product.product_id }}'); $('#wishlist-item-{{ product.product_id }}').fadeOut();" class="btn btn-sm btn-outline-danger border-0" title="Xóa">
+            <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+    
+    {% else %}
+    <div class="text-center p-3">
+      <p class="mb-0 text-muted">Danh sách trống</p>
+    </div>
+  {% endif %}
