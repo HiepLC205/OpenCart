@@ -163,4 +163,28 @@ $(document).ready(function() {
     });
 });
 </script>
+<div class="modal fade" id="modal-quickview" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content" id="quickview-content"></div></div></div>
+<script>
+$(document).ready(function() {
+    // Tự động thêm nút xem nhanh vào từng sản phẩm
+    $('.product-thumb .image').each(function() {
+        if ($(this).find('.btn-qv').length == 0) {
+            $(this).append('<button type="button" class="btn-qv" title="Quick View" style="position:absolute;top:10px;left:10px;z-index:10;border-radius:50%;border:none;width:38px;height:38px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.15);transition:0.3s;"><i class="fa-solid fa-eye text-primary"></i></button>');
+        }
+    });
+    
+    $(document).on('click', '.btn-qv', function(e) {
+        e.preventDefault();
+        var link = $(this).closest('.product-thumb').find('h4 a').attr('href');
+        var id = link.match(/product_id=(\d+)/)[1];
+        
+        $('#quickview-content').html('<div class="p-5 text-center"><div class="spinner-border text-primary"></div><p class="mt-2">Đang tải...</p></div>');
+        var modal = new bootstrap.Modal('#modal-quickview');
+        modal.show();
+        
+        // Gọi AJAX đúng đường dẫn Extension
+        $('#quickview-content').load('index.php?route=extension/opencart/product/quickview&product_id=' + id);
+    });
+});
+</script>
 </body></html>

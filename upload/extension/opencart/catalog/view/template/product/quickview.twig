@@ -1,0 +1,289 @@
+<style>
+    /* Cấu trúc Modal chuẩn */
+    #modal-quickview .modal-content { max-height: 90vh; overflow: hidden; border: none; }
+    #modal-quickview .modal-body { overflow-y: auto; padding: 20px; }
+    
+    /* KHUNG CHỨA OPTION (ĐẸP & GỌN) */
+    .product-options-box {
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .product-options-box h5 {
+        font-size: 15px; font-weight: 700; text-transform: uppercase;
+        color: #555; border-bottom: 2px solid #ddd; padding-bottom: 10px; margin-bottom: 15px;
+    }
+
+    /* HIỂN THỊ LỖI */
+    .text-error { color: #dc3545; font-size: 12px; margin-top: 5px; font-weight: bold; display: block; }
+    .input-error { border: 1px solid #dc3545 !important; background-color: #fff8f8; }
+    .required-label:before { content: '* '; color: #f00; font-weight: bold; }
+
+    /* Nút Upload */
+    .btn-upload { background: #fff; border: 1px solid #ccc; color: #333; transition: all 0.2s; }
+    .btn-upload:hover { background: #eee; }
+</style>
+
+<div class="modal-header">
+    <h5 class="modal-title fw-bold">{{ heading_title }}</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+
+<div class="modal-body">
+    <div class="row">
+        <div class="col-md-5 mb-3 text-center">
+            <img src="{{ image }}" class="img-fluid rounded border shadow-sm" alt="{{ heading_title }}">
+        </div>
+
+        <div class="col-md-7">
+            <h2 class="text-primary fw-bold" style="color: #00b7f1; margin-top:0;">{{ price }}</h2>
+            <div class="text-muted mb-3 small">{{ description }}</div>
+            
+            <form id="form-quickview">
+                <input type="hidden" name="product_id" value="{{ product_id }}">
+
+                {% if options %}
+                <div class="product-options-box">
+                    <h5>Available Options</h5>
+                    
+                    {% for option in options %}
+                        <div class="mb-3 option-row" id="option-row-{{ option.product_option_id }}">
+                            <label class="form-label fw-bold small text-dark mb-1 {% if option.required %}required-label{% endif %}">
+                                {{ option.name }}
+                            </label>
+
+                            {# --- SELECT --- #}
+                            {% if option.type == 'select' %}
+                            <select name="option[{{ option.product_option_id }}]" class="form-select form-select-sm">
+                                <option value="">--- Please Select ---</option>
+                                {% for option_value in option.product_option_value %}
+                                <option value="{{ option_value.product_option_value_id }}">{{ option_value.name }} 
+                                {% if option_value.price %}({{ option_value.price_prefix }}{{ option_value.price }}){% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% endif %}
+
+                            {# --- RADIO --- #}
+                            {% if option.type == 'radio' %}
+                            <div class="d-flex flex-column">
+                                {% for option_value in option.product_option_value %}
+                                <div class="form-check">
+                                    <input type="radio" name="option[{{ option.product_option_id }}]" value="{{ option_value.product_option_value_id }}" id="opt-{{ option.product_option_id }}-{{ option_value.product_option_value_id }}" class="form-check-input">
+                                    <label for="opt-{{ option.product_option_id }}-{{ option_value.product_option_value_id }}" class="form-check-label">{{ option_value.name }} 
+                                    {% if option_value.price %} ({{ option_value.price_prefix }}{{ option_value.price }}){% endif %}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            {# --- CHECKBOX --- #}
+                            {% if option.type == 'checkbox' %}
+                            <div class="d-flex flex-column">
+                                {% for option_value in option.product_option_value %}
+                                <div class="form-check">
+                                    <input type="checkbox" name="option[{{ option.product_option_id }}][]" value="{{ option_value.product_option_value_id }}" id="opt-{{ option.product_option_id }}-{{ option_value.product_option_value_id }}" class="form-check-input">
+                                    <label for="opt-{{ option.product_option_id }}-{{ option_value.product_option_value_id }}" class="form-check-label">{{ option_value.name }} 
+                                    {% if option_value.price %} ({{ option_value.price_prefix }}{{ option_value.price }}){% endif %}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            {# --- TEXT --- #}
+                            {% if option.type == 'text' %}
+                            <input type="text" name="option[{{ option.product_option_id }}]" value="{{ option.value }}" placeholder="{{ option.name }}" class="form-control form-control-sm" />
+                            {% endif %}
+
+                            {# --- TEXTAREA --- #}
+                            {% if option.type == 'textarea' %}
+                            <textarea name="option[{{ option.product_option_id }}]" rows="3" placeholder="{{ option.name }}" class="form-control form-control-sm">{{ option.value }}</textarea>
+                            {% endif %}
+
+                            {# --- FILE UPLOAD (ĐÃ SỬA LỖI INVALID) --- #}
+                            {% if option.type == 'file' %}
+                            <button type="button" id="button-upload-{{ option.product_option_id }}" data-loading-text="Loading..." class="btn btn-upload btn-sm w-100 text-start">
+                                <i class="fas fa-upload me-2"></i> Upload File
+                            </button>
+                            <input type="hidden" name="option[{{ option.product_option_id }}]" value="" id="input-option-{{ option.product_option_id }}" />
+                            {% endif %}
+
+                            {# --- DATE / TIME --- #}
+                            {% if option.type == 'date' %}
+                            <input type="date" name="option[{{ option.product_option_id }}]" value="{{ option.value }}" class="form-control form-control-sm" />
+                            {% endif %}
+                            
+                            {% if option.type == 'datetime' %}
+                            <input type="datetime-local" name="option[{{ option.product_option_id }}]" value="{{ option.value }}" class="form-control form-control-sm" />
+                            {% endif %}
+                            
+                            {% if option.type == 'time' %}
+                            <input type="time" name="option[{{ option.product_option_id }}]" value="{{ option.value }}" class="form-control form-control-sm" />
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <div id="quickview-notification"></div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal-footer justify-content-between bg-white border-top">
+    <div class="d-flex align-items-center">
+        <label class="fw-bold me-2">Qty:</label>
+        <input type="number" name="quantity" value="{{ minimum > 1 ? minimum : 1 }}" id="input-quantity" class="form-control text-center fw-bold" style="width: 70px;" min="1">
+    </div>
+    
+    <button type="button" id="btn-quick-add" class="btn btn-primary fw-bold px-4 py-2 flex-grow-1 ms-3 text-uppercase">ADD TO CART</button>
+</div>
+
+<script>
+// 1. LOGIC UPLOAD FILE (SỬA LỖI INVALID)
+// Phải gán sự kiện click cho từng nút upload riêng biệt
+$('button[id^=\'button-upload\']').on('click', function() {
+    var node = this;
+    
+    // Xóa form cũ nếu có
+    $('#form-upload').remove();
+    
+    // Tạo form upload ảo
+    $('body').prepend('<form enctype="multipart/form-data" id="form-upload" style="display: none;"><input type="file" name="file" /></form>');
+    
+    // Kích hoạt chọn file
+    $('#form-upload input[name=\'file\']').trigger('click');
+
+    if (typeof timer != 'undefined') { clearInterval(timer); }
+
+    timer = setInterval(function() {
+        if ($('#form-upload input[name=\'file\']').val() != '') {
+            clearInterval(timer);
+
+            $.ajax({
+                url: 'index.php?route=tool/upload',
+                type: 'post',
+                dataType: 'json',
+                data: new FormData($('#form-upload')[0]),
+                cache: false,
+                contentType: false,
+                processData: false,
+                beforeSend: function() {
+                    $(node).text('Uploading...');
+                    $(node).prop('disabled', true);
+                },
+                complete: function() {
+                    $(node).text('Upload File');
+                    $(node).prop('disabled', false);
+                },
+                success: function(json) {
+                    $('.text-error').remove(); // Xóa lỗi cũ
+
+                    if (json['error']) {
+                        $(node).parent().append('<div class="text-error">' + json['error'] + '</div>');
+                        alert(json['error']); // Báo lỗi bằng Alert cho chắc
+                    }
+
+                    if (json['success']) {
+                        alert('File Uploaded Successfully!');
+                        
+                        // QUAN TRỌNG: Gán code file vào input ẩn để gửi đi
+                        $(node).parent().find('input[type=\'hidden\']').val(json['code']);
+                    }
+                },
+                error: function(xhr, ajaxOptions, thrownError) {
+                    alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+                }
+            });
+        }
+    }, 500);
+});
+
+// 2. LOGIC ADD TO CART & VALIDATION (CHẶN TUYỆT ĐỐI)
+$('#btn-quick-add').on('click', function() {
+    
+    // A. Kiểm tra số lượng
+    var qty = parseInt($('#input-quantity').val());
+    if (isNaN(qty) || qty < 1) {
+        alert("Quantity must be at least 1!");
+        return;
+    }
+
+    // Reset trạng thái cũ
+    $('.text-error').remove();
+    $('.input-error').removeClass('input-error');
+    $('#quickview-notification').html('');
+
+    // B. Gửi Ajax
+    $.ajax({
+        url: 'index.php?route=checkout/cart|add',
+        type: 'post',
+        data: $('#form-quickview').serialize() + '&quantity=' + qty,
+        dataType: 'json',
+        beforeSend: function() {
+            $('#btn-quick-add').prop('disabled', true).text('PROCESSING...');
+        },
+        complete: function() {
+            $('#btn-quick-add').prop('disabled', false).text('ADD TO CART');
+        },
+        success: function(json) {
+            
+            // --- TRƯỜNG HỢP CÓ LỖI ---
+            if (json['error']) {
+                if (json['error']['option']) {
+                    
+                    // 1. Hiển thị thông báo chung ở dưới
+                    $('#quickview-notification').html('<div class="alert alert-danger mt-3 small fw-bold"><i class="fas fa-exclamation-triangle"></i> Missing required fields! Please check above.</div>');
+                    
+                    // 2. Vòng lặp báo lỗi từng dòng
+                    var errorMsg = "Please fill in the following required fields:\n";
+                    
+                    for (i in json['error']['option']) {
+                        // Tìm div chứa option đó
+                        var element = $('#option-row-' + i);
+                        
+                        if (element.length) {
+                            // Thêm dòng chữ đỏ
+                            element.append('<div class="text-error"><i class="fas fa-arrow-up"></i> ' + json['error']['option'][i] + '</div>');
+                            // Tô viền đỏ input
+                            element.find('input, select, textarea').addClass('input-error');
+                        }
+                        
+                        // Cộng dồn vào thông báo Alert
+                        errorMsg += "- " + json['error']['option'][i] + "\n";
+                    }
+
+                    // 3. BẮT BUỘC BẬT ALERT (Chặn cứng nếu giao diện bị lỗi ẩn text)
+                    alert(errorMsg);
+
+                    // 4. Cuộn tới lỗi đầu tiên
+                    var firstError = $('.text-error').first().parent();
+                    if(firstError.length){
+                        $('.modal-body').animate({ scrollTop: firstError.position().top }, 'fast');
+                    }
+                }
+            }
+
+            // --- TRƯỜNG HỢP THÀNH CÔNG ---
+            if (json['success']) {
+                $('#quickview-notification').html('<div class="alert alert-success mt-3 small fw-bold"><i class="fas fa-check-circle"></i> ' + json['success'] + '</div>');
+                
+                // Load lại giỏ hàng Header
+                $('#header-cart').load('index.php?route=common/cart|info');
+                
+                // Cuộn xuống xem thông báo
+                $('.modal-body').animate({ scrollTop: $('.modal-body')[0].scrollHeight }, 'fast');
+            }
+        },
+        error: function(xhr, ajaxOptions, thrownError) {
+            alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+        }
+    });
+});
+</script>
